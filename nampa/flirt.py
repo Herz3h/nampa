@@ -5,7 +5,7 @@
 from __future__ import print_function
 from . import binrw
 from . import crc
-from builtins import range, bytes
+#from builtins import range, bytes
 try:
     from typing import List
 except ImportError:
@@ -575,7 +575,7 @@ def match_function(sig, buff, addr, callback):
     # type: (FlirtFile, bytes) -> bool
     # assert type(buff) is bytes
     if type(buff) is str:
-        buff = bytes(buff)
+        buff = bytearray(buff)
 
     for child in sig.root.children:
         if match_node(child, buff, addr, 0, callback):

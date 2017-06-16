@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from builtins import range
+#from builtins import range
 
 POLY = 0x1021
 _crc_table = []

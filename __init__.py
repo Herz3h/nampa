@@ -10,7 +10,7 @@ except ImportError:
     from urllib.request import urlretrieve
 
 from binaryninja import *
-from builtins import bytes
+#from builtins import bytes
 
 import nampa
 
@@ -35,6 +35,7 @@ LIBRARY = [
 ]
 
 
+prev_sig_dir_path = ''
 dir_path = os.path.dirname(__file__)
 cache_dir = os.path.join(dir_path, 'cache')
 try:
@@ -119,7 +120,7 @@ def match_functions(bv, flirt_path, action, keep_manually_renamed, prefix):
         for funk in bv.functions:
             f_start = funk.start
             f_end = get_function_end(funk)
-            buff = bytes(bv.read(f_start, f_end - f_start + FUNCTION_TAIL_LENGTH))
+            buff = bytearray(bv.read(f_start, f_end - f_start + FUNCTION_TAIL_LENGTH))
             nampa.match_function(flirt, buff, f_start, callback)
 
         # ff = [f.start for f in bv.functions] + [bv.end]
@@ -131,6 +132,7 @@ def match_functions(bv, flirt_path, action, keep_manually_renamed, prefix):
 
 
 def match_functions_gui(bv):
+    global prev_sig_dir_path
     actions = ('rename', 'comment', 'log')
 
     gui_label_options = LabelField('Options')
@@ -144,16 +146,21 @@ def match_functions_gui(bv):
     gui_label_signature = LabelField('Signature')
     gui_from_library = ChoiceField('From Library:', [name for name, _ in LIBRARY])
     gui_from_file = OpenFileNameField('From File:', '*.sig')
+    gui_from_folder = DirectoryNameField('Sig Folder', 'Sig Folder')
+    #gui_from_folder = get_directory_name_input(prev_sig_dir_path, 'Sig Folder')
 
     ret = get_form_input(
         (gui_label_options, gui_analysis_mode, gui_prefix, gui_selector, gui_action, gui_separator, gui_label_signature
-         , gui_from_library , gui_from_file),
+         , gui_from_library , gui_from_file, gui_from_folder),
         'Nampa'
     )
 
     # Exit if the user didn't confirm
     if not ret:
         return
+
+    prev_sig_dir_path = gui_from_folder.result.strip()
+    ilog('Opening sigs in folder "{}" ...'.format(prev_sig_dir_path))
 
     # Option parsing/sanitization
     action = actions[gui_action.result]
@@ -165,7 +172,16 @@ def match_functions_gui(bv):
     else:
         flirt_path = get_library_file_path(gui_from_library.result)
 
-    match_functions(bv, flirt_path, action, keep_manually_renamed, prefix)
+
+    if gui_from_folder != '':
+        for file in os.listdir(prev_sig_dir_path):
+            ilog(file)
+            if file.endswith('.sig'):
+                flirt_path = '{}/{}'.format(prev_sig_dir_path, file)
+                ilog('Opening sig "{}" ...'.format(flirt_path))
+                match_functions(bv, flirt_path, action, keep_manually_renamed, prefix)
+    else:
+        match_functions(bv, flirt_path, action, keep_manually_renamed, prefix)
 
 PluginCommand.register(
     name='Nampa - GUI (flirt)',
